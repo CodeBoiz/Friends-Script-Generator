@@ -66,10 +66,6 @@ def create_dataset():
 ############################################################
 #  Settings
 ############################################################
-# Initalization of loss value as global variable
-# to be used in multiple functions
-loss = 0
-
 # Number of RNN units
 rnn_units = 1024
 
@@ -90,6 +86,10 @@ steps = 1000
 ############################################################
 #  Model
 ############################################################
+
+# Initalization of loss value as global variable
+# to be used in multiple functions
+loss = 0
 
 def build_model(vocab_size, embedding_dim, rnn_units, batch_size):
   model = tf.keras.Sequential([
