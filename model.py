@@ -23,6 +23,29 @@ import random
 root_path = os.path.dirname(os.path.realpath(__file__))
 
 ############################################################
+#  Settings
+############################################################
+# The maximum length sentence we want for a single input in characters
+seq_length = 200
+
+# Number of RNN units
+rnn_units = 1024
+
+# The embedding dimension
+embedding_dim = 256
+
+# Batch size
+BATCH_SIZE = 500
+
+# Number of epochs to run through
+EPOCHS=50
+
+BUFFER_SIZE = 10000
+
+# Steps per epochs
+STEPS = 1000
+
+############################################################
 #  Create Dataset
 ############################################################
 
@@ -43,8 +66,6 @@ def create_dataset():
 
   text_as_int = np.array([char2idx[c] for c in text])
 
-  # The maximum length sentence we want for a single input in characters
-  seq_length = 200
   examples_per_epoch = len(text)//(seq_length+1)
 
   # Create training examples / targets
@@ -64,26 +85,6 @@ def create_dataset():
   return dataset, vocab, idx2char, char2idx
 
 ############################################################
-#  Settings
-############################################################
-# Number of RNN units
-rnn_units = 1024
-
-# The embedding dimension
-embedding_dim = 256
-
-# Batch size
-BATCH_SIZE = 500
-
-# Number of epochs to run through
-EPOCHS=50
-
-BUFFER_SIZE = 10000
-
-# Steps per epochs
-steps = 1000
-
-############################################################
 #  Model
 ############################################################
 
@@ -95,6 +96,10 @@ def build_model(vocab_size, embedding_dim, rnn_units, batch_size):
   model = tf.keras.Sequential([
     tf.keras.layers.Embedding(vocab_size, embedding_dim,
                               batch_input_shape=[batch_size, None]),
+    tf.keras.layers.GRU(rnn_units,
+                        return_sequences=True,
+                        stateful=True,
+                        recurrent_initializer='glorot_uniform'),
     tf.keras.layers.GRU(rnn_units,
                         return_sequences=True,
                         stateful=True,
@@ -153,7 +158,7 @@ def train_model(dataset, vocab):
       filepath=checkpoint_prefix,
       save_weights_only=True)
 
-  history = model.fit(dataset, steps_per_epoch=steps, epochs=EPOCHS, callbacks=[checkpoint_callback])
+  history = model.fit(dataset, steps_per_epoch=STEPS, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
   # Create a path for the saving location of the model
   model_dir = checkpoint_dir + "model.h5"
@@ -195,7 +200,7 @@ def generate_text(model, idx2char, char2idx, start_string):
   input_eval = [char2idx[s] for s in start_string]
   input_eval = tf.expand_dims(input_eval, 0)
 
-  # Empty string to store our results
+  # Empty array to store our results
   text_generated = []
 
   # Low temperatures results in more predictable text.
