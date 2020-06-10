@@ -22,11 +22,20 @@ import random
 # Root directory of the project
 root_path = os.path.dirname(os.path.realpath(__file__))
 
+#Allow GPU Growth
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+  try:
+    for gpu in gpus:
+      tf.config.experimental.set_memory_growth(gpu, True)
+  except RuntimeError as e:
+    print(e)
+
 ############################################################
 #  Settings
 ############################################################
 # The maximum length sentence we want for a single input in characters
-seq_length = 200
+seq_length = 500
 
 # Number of RNN units
 rnn_units = 1024
@@ -35,15 +44,23 @@ rnn_units = 1024
 embedding_dim = 256
 
 # Batch size
-BATCH_SIZE = 500
+BATCH_SIZE = 200
 
 # Number of epochs to run through
 EPOCHS=50
 
-BUFFER_SIZE = 10000
+BUFFER_SIZE = 100
 
 # Steps per epochs
-STEPS = 1000
+STEPS = 500
+
+# Low temperatures results in more predictable text.
+# Higher temperatures results in more surprising text.
+# Experiment to find the best setting.
+temperature = 1.0
+
+# Number of characters to generate
+num_generate = 10000
 
 ############################################################
 #  Create Dataset
@@ -55,7 +72,6 @@ def create_dataset():
 
   # Read, then decode for py2 compat.
   text = open(dataset_path, 'rb').read().decode(encoding='unicode_escape')
-  # length of text is the number of characters in it
 
   # The unique characters in the file
   vocab = sorted(set(text))
@@ -107,6 +123,10 @@ def build_model(vocab_size, embedding_dim, rnn_units, batch_size):
     tf.keras.layers.Dense(vocab_size)
   ])
   return model
+
+############################################################
+#  Train Model
+############################################################
 
 def train_model(dataset, vocab):
   # Buffer size to shuffle the dataset
@@ -193,20 +213,12 @@ def train_model(dataset, vocab):
 def generate_text(model, idx2char, char2idx, start_string):
   # Evaluation step (generating text using the learned model)
 
-  # Number of characters to generate
-  num_generate = 10000
-
   # Converting our start string to numbers (vectorizing)
   input_eval = [char2idx[s] for s in start_string]
   input_eval = tf.expand_dims(input_eval, 0)
 
   # Empty array to store our results
   text_generated = []
-
-  # Low temperatures results in more predictable text.
-  # Higher temperatures results in more surprising text.
-  # Experiment to find the best setting.
-  temperature = 1.0
 
   # Here batch size == 1
   model.reset_states()
