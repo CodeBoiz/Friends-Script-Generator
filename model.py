@@ -177,6 +177,13 @@ def train_model(dataset, vocab):
   checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(
       filepath=checkpoint_prefix,
       save_weights_only=True)
+   
+  callbacks = [
+      keras.callbacks.TensorBoard(log_dir=self.log_dir,
+                                        histogram_freq=0, write_graph=True, write_images=False),
+      keras.callbacks.ModelCheckpoint(self.checkpoint_path,
+                                            verbose=0, save_weights_only=True),
+  ]
 
   history = model.fit(dataset, steps_per_epoch=STEPS, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
