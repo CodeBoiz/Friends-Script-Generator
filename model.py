@@ -35,7 +35,7 @@ if gpus:
 #  Settings
 ############################################################
 # The maximum length sentence we want for a single input in characters
-seq_length = 500
+seq_length = 100
 
 # Number of RNN units
 rnn_units = 1024
@@ -44,15 +44,15 @@ rnn_units = 1024
 embedding_dim = 256
 
 # Batch size
-BATCH_SIZE = 200
+BATCH_SIZE = 65
 
 # Number of epochs to run through
-EPOCHS=50
+EPOCHS=10
 
 BUFFER_SIZE = 100
 
 # Steps per epochs
-STEPS = 500
+STEPS = 50
 
 # Low temperatures results in more predictable text.
 # Higher temperatures results in more surprising text.
@@ -60,7 +60,11 @@ STEPS = 500
 temperature = 1.0
 
 # Number of characters to generate
-num_generate = 10000
+num_generate = 200
+
+# Initalization of loss value as global variable
+# to be used in multiple functions
+loss = 0
 
 ############################################################
 #  Create Dataset
@@ -82,8 +86,6 @@ def create_dataset():
 
   text_as_int = np.array([char2idx[c] for c in text])
 
-  examples_per_epoch = len(text)//(seq_length+1)
-
   # Create training examples / targets
   char_dataset = tf.data.Dataset.from_tensor_slices(text_as_int)
 
@@ -104,18 +106,10 @@ def create_dataset():
 #  Model
 ############################################################
 
-# Initalization of loss value as global variable
-# to be used in multiple functions
-loss = 0
-
 def build_model(vocab_size, embedding_dim, rnn_units, batch_size):
   model = tf.keras.Sequential([
     tf.keras.layers.Embedding(vocab_size, embedding_dim,
                               batch_input_shape=[batch_size, None]),
-    tf.keras.layers.GRU(rnn_units,
-                        return_sequences=True,
-                        stateful=True,
-                        recurrent_initializer='glorot_uniform'),
     tf.keras.layers.GRU(rnn_units,
                         return_sequences=True,
                         stateful=True,
@@ -161,7 +155,6 @@ def train_model(dataset, vocab):
 
   example_batch_loss  = loss(target_example_batch, example_batch_predictions)
   print("Prediction shape: ", example_batch_predictions.shape, " # (batch_size, sequence_length, vocab_size)")
-  print("scalar_loss:      ", example_batch_loss.numpy().mean())
 
   model.compile(optimizer='adam', loss=loss)
 
@@ -172,18 +165,14 @@ def train_model(dataset, vocab):
   checkpoint_dir = './logs/' + random_string + "/"
 
   # Name of the checkpoint files
-  checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt_{epoch}")
+  checkpoint_prefix = os.path.join(checkpoint_dir, "Model_{epoch}")
 
   checkpoint_callback=tf.keras.callbacks.ModelCheckpoint(
       filepath=checkpoint_prefix,
-      save_weights_only=True)
-   
-  callbacks = [
-      keras.callbacks.TensorBoard(log_dir=self.log_dir,
-                                        histogram_freq=0, write_graph=True, write_images=False),
-      keras.callbacks.ModelCheckpoint(self.checkpoint_path,
-                                            verbose=0, save_weights_only=True),
-  ]
+      save_weights_only=True,
+      save_freq='epoch')
+
+  model.save_weights(checkpoint_prefix.format(epoch=0))
 
   history = model.fit(dataset, steps_per_epoch=STEPS, epochs=EPOCHS, callbacks=[checkpoint_callback])
 
@@ -252,7 +241,6 @@ def generate_text(model, idx2char, char2idx, start_string):
 
 if __name__ == '__main__':
     import argparse
-    from keras.models import load_model
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
@@ -269,7 +257,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-
     # Configurations
     if args.command == "train":
       # Load in the dataset and other function to use
@@ -282,14 +269,14 @@ if __name__ == '__main__':
       # Load in the dataset and other function to use
       dataset, vocab, idx2char, char2idx = create_dataset()
       # Get the model path
-      model_path = os.path.join(root_path, r"model.h5")
+      model_path = os.path.join(root_path, args.weights)
+      # Length of the vocabulary in chars
+      vocab_size = len(vocab)
+      # Build the model with the dataset generated earlier
+      model = build_model(vocab_size, embedding_dim, rnn_units, batch_size=1)
+      # Load the weights
+      model.load_weights(model_path)
       # Build the model
-      model = build_model(
-      vocab_size = len(vocab),
-      embedding_dim=embedding_dim,
-      rnn_units=rnn_units,
-      batch_size=BATCH_SIZE)
-      # Load the model
-      model2 = tf.keras.models.load_model(model_path, custom_objects={'loss':loss})
+      model.build(tf.TensorShape([1, None]))
       # Generate text
-      print(generate_text(model2, idx2char, char2idx,start_string=u"The "))
+      print(generate_text(model, idx2char, char2idx,start_string=u"The "))
