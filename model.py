@@ -244,7 +244,7 @@ if __name__ == '__main__':
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(
-        description='Train Mask R-CNN to detect balloons.')
+        description='Train or Detect.')
     parser.add_argument("command",
                         metavar="<command>",
                         help="'train' or 'generate'")
