@@ -7,6 +7,10 @@
 
    I used this as a reference guide:
    https://www.tensorflow.org/tutorials/text/text_generation
+
+   Do to my low GPU vram, I cant have a large batch size or train for a long period of time. 
+   As a result, this causes the output to be very crude. To get good results, train on a
+   GPU with around 15GB vram.
 """
 
 # Import necessary libraries
@@ -14,6 +18,8 @@ import tensorflow as tf
 import numpy as np
 import os
 import time
+import argparse
+
 
 # These are for generating a random logs folder
 import string
@@ -44,7 +50,7 @@ rnn_units = 1024
 embedding_dim = 256
 
 # Batch size
-BATCH_SIZE = 65
+BATCH_SIZE = 200
 
 # Number of epochs to run through
 EPOCHS=10
@@ -240,8 +246,6 @@ def generate_text(model, idx2char, char2idx, start_string):
 ############################################################
 
 if __name__ == '__main__':
-    import argparse
-
     # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Train or Detect.')
