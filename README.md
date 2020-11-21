@@ -1,5 +1,5 @@
 # Friends-Script-Generator
-Generate a whole Friends using a neural network.
+Generate a whole Friends episode using a neural network.
 
 In order to get the dataset, run the python script `getDataset.py` to get all text from multiple webpages, and write the text to a file.
 
